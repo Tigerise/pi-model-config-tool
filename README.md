@@ -2,8 +2,9 @@
 
 *纯Ai做的，Ai上传的，我是技术小白，只会口喷Ai！*
 
-<img width="1475" height="965" alt="image" src="https://github.com/user-attachments/assets/4ddfb101-4365-4ccb-9cfc-8326212cd048" />
-<img width="1400" height="940" alt="image" src="https://github.com/user-attachments/assets/60983382-ecc0-43bd-9eaf-ce95a02df239" />
+<img width="1477" height="965" alt="image" src="https://github.com/user-attachments/assets/62dc5522-8ab1-408d-a829-2e6c827de69c" />
+
+<img width="1400" height="900" alt="image" src="https://github.com/user-attachments/assets/f834867d-034e-4f71-8050-0eb774200741" />
 
 给 pi（AI 编程助手）用户做的 Windows 桌面小工具：填入第三方中转的地址和密钥，自动拉取模型列表、匹配官方参数（上下文长度、思考等级、图片输入、兼容开关），一键合并写入 models.json。还支持批量删除失效的服务商和模型、直接修改已配置模型的参数，以及逐模型实测可用性、延迟、协议匹配、图片识别和上下文抽查。
 
