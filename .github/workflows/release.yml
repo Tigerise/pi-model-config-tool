@@ -1,0 +1,86 @@
+name: 打包发布
+
+# 打一个 v 开头的 tag（例如 git tag v2.0 && git push origin v2.0）就会自动
+# 跑测试、打包 exe、创建 Release 并把 exe 传上去。也可以手动点运行只出构建产物。
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 装打包工具
+        run: python -m pip install pyinstaller==6.22.2
+
+      - name: 先跑测试
+        run: python -m unittest discover -s tests -t .
+
+      - name: 打包单文件 exe
+        run: >
+          python -m PyInstaller --onefile --windowed --clean --noconfirm
+          --name "pi模型配置工具"
+          --add-data "snapshot;snapshot"
+          --add-data "tests;tests"
+          --add-data "nodefetch.mjs;."
+          --add-data "pivalidate.mjs;."
+          main.py
+
+      - name: 验证打好的 exe 自检通过
+        # 这是个无控制台的窗口程序，PowerShell 直接调不会等它跑完，
+        # $LASTEXITCODE 拿不到真实退出码，所以用 Start-Process -Wait 并把输出重定向出来。
+        run: |
+          $p = Start-Process -FilePath "dist\pi模型配置工具.exe" `
+               -ArgumentList "--selftest" -Wait -PassThru `
+               -RedirectStandardOutput "selftest-out.txt" `
+               -RedirectStandardError "selftest-err.txt"
+          Get-Content selftest-out.txt, selftest-err.txt -ErrorAction SilentlyContinue
+          if ($p.ExitCode -ne 0) { throw "exe 自检没通过，退出码 $($p.ExitCode)" }
+
+      - name: 给产物改个英文名字
+        # GitHub 上传附件时会把非 ASCII 字符丢掉，直接传中文名会变成 pi.exe，
+        # 所以另存一份带版本号的英文名再发布。
+        run: |
+          $v = python -c "import version; print(version.VERSION)"
+          $dst = "dist\pi-model-config-tool-v$v.exe"
+          Copy-Item "dist\pi模型配置工具.exe" $dst -Force
+          "发布用文件名：$dst"
+
+      - name: 保存构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: pi-model-config-tool-exe
+          path: dist/pi-model-config-tool-*.exe
+
+      - name: 发布 Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/pi-model-config-tool-*.exe
+          generate_release_notes: true
+
+      - name: 清掉 Release 里多余的附件
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $keep = (Get-ChildItem "dist\pi-model-config-tool-*.exe" | Select-Object -First 1).Name
+          $assets = gh release view $tag --json assets --jq ".assets[].name"
+          foreach ($a in $assets) {
+            if ($a -and $a -ne $keep) {
+              "删除旧附件：$a"
+              gh release delete-asset $tag $a -y
+            }
+          }

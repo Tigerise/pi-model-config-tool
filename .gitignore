@@ -1,0 +1,19 @@
+# 打包环境和产物不入库
+venv/
+build/
+dist/
+__pycache__/
+*.pyc
+*.spec
+
+# exe 通过 GitHub Releases 发布，不放进仓库
+dist/*.exe
+/*.exe
+
+# 本地调试残留
+_b.json
+_t.mjs
+
+# 自用文档，不发布到 GitHub
+项目总结.md
+*优化规划.md
